@@ -102,6 +102,93 @@ try{
     }
 });
 
+app.get("/tarefas", async (req, res) => {
+    try {
+        const query = await executarSQL("SELECT * FROM tarefas;");
+        res.json(query.rows);
+    } catch (error) {
+        res.json({
+            mensagem: error.message
+        })
+    }
+});
+
+app.post("/tarefas", async (req, res) => {
+    try {
+        const { titulo, descricao } = req.body;
+
+        const query = await executarSQL(`INSERT INTO tarefas (titulo, descricao) VALUES ($1, $2) RETURNING *;`,[titulo, descricao]);
+        
+        if(query.rowCount > 0){
+            res.json({
+                tipo: "success",
+                mensagem: "Registro criado com sucesso"
+            });
+        }else{
+            res.json({
+                tipo: "warning",
+                mensagem: "Falha ao criar registro"
+            });
+        }
+    } catch (error) {
+        res.json({
+            mensagem: error.message
+        })
+    }
+});
+
+app.put("/tarefas/:id", async(req, res) => {
+    try{
+        const { titulo, descricao } = req.body;
+        const { id } = req.params;
+
+        const query = await executarSQL(`UPDATE tarefas SET titulo=$1, descricao=$2, WHERE id = ${id} RETURNING *;`, [titulo, descricao]);
+             
+        if(query.rowCount > 0){
+            res.json({
+                tipo: "success",
+                mensagem: "Registro atualizado com sucesso"
+            });
+        }else{
+            res.json({
+                tipo: "warning",
+                mensagem: "Falha ao atualizar registro"
+            });
+        }
+    } catch (error) {
+        res.json({
+            mensagem: error.message
+        })
+    }
+});
+
+app.delete("/tarefas/:id", async (req, res) => {
+try{
+        const { id } = req.params;
+
+        const query = await executarSQL(`DELETE FROM tarefas WHERE id = ${id} RETURNING *;`);
+             
+        if(query.rowCount > 0){
+            res.json({
+                tipo: "success",
+                mensagem: "Registro apagado com sucesso"
+            });
+        }else{
+            res.json({
+                tipo: "warning",
+                mensagem: "Registro não encontrado"
+            });
+        }
+    } catch (error) {
+        res.json({
+            mensagem: error.message
+        })
+    }
+});
+
+
+
+
 app.use((req, res) => {
     res.status(404).send("Rota não encontrada");
 });
