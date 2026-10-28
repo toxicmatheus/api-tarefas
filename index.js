@@ -1,11 +1,50 @@
 const express = require("express");
+const cors = require("cors");
 const executarSQL = require("./services");
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
     res.send("Olá mundo");
+});
+
+app.post("/login", async (req, res) => {
+    try {
+        const { email, senha } = req.body;
+
+        const emailExiste = await executarSQL(`SELECT * FROM usuarios WHERE email = '${email}'`);
+        
+        if(emailExiste.rowCount == 0){
+            res.json({
+                tipo: "warning",
+                mensagem: "Email ou senha incorreto"
+            });
+            return;
+        }
+        
+        if(emailExiste.rows[0].senha != senha){
+            res.json({
+                tipo: "warning",
+                mensagem: "Email ou senha incorreto"
+            });
+            return;
+        }
+
+        delete emailExiste.rows[0].senha; 
+        
+        res.json({
+            tipo: "success",
+            mensagem: "Login realizado com sucesso",
+            usuario: emailExiste.rows[0]
+        });
+        
+    } catch (error) {
+        res.json({
+            mensagem: error.message
+        })
+    }
 });
 
 app.get("/usuarios", async (req, res) => {
@@ -53,13 +92,13 @@ app.post("/usuarios", async (req, res) => {
     }
 });
 
-app.put("/usuarios/:id", async(req, res) => {
-    try{
+app.put("/usuarios/:id", async (req, res) => {
+    try {
         const { nome, email, senha } = req.body;
         const { id } = req.params;
-
+        
         const query = await executarSQL(`UPDATE usuarios SET nome=$1, email=$2, senha=$3 WHERE id = ${id} RETURNING *;`, [nome, email, senha]);
-             
+        
         if(query.rowCount > 0){
             res.json({
                 tipo: "success",
@@ -79,15 +118,15 @@ app.put("/usuarios/:id", async(req, res) => {
 });
 
 app.delete("/usuarios/:id", async (req, res) => {
-try{
+    try {
         const { id } = req.params;
-
+        
         const query = await executarSQL(`DELETE FROM usuarios WHERE id = ${id} RETURNING *;`);
-             
+        
         if(query.rowCount > 0){
             res.json({
                 tipo: "success",
-                mensagem: "Registro apagado com sucesso"
+                mensagem: "Registro deletado com sucesso"
             });
         }else{
             res.json({
@@ -104,7 +143,13 @@ try{
 
 app.get("/tarefas", async (req, res) => {
     try {
-        const query = await executarSQL("SELECT * FROM tarefas;");
+        const { id } = req.query;
+        let query = null;
+        if (id) {
+            query = await executarSQL(`SELECT * FROM tarefas WHERE usuario_id = ${id};`)
+        } else {
+            query = await executarSQL("SELECT * FROM tarefas;")
+        }
         res.json(query.rows);
     } catch (error) {
         res.json({
@@ -137,13 +182,13 @@ app.post("/tarefas", async (req, res) => {
     }
 });
 
-app.put("/tarefas/:id", async(req, res) => {
-    try{
+app.put("/tarefas/:id", async (req, res) => {
+    try {
         const { titulo, descricao, usuario_id } = req.body;
         const { id } = req.params;
-
+        
         const query = await executarSQL(`UPDATE tarefas SET titulo=$1, descricao=$2, usuario_id=$3 WHERE id = ${id} RETURNING *;`, [titulo, descricao, usuario_id]);
-             
+        
         if(query.rowCount > 0){
             res.json({
                 tipo: "success",
@@ -163,15 +208,15 @@ app.put("/tarefas/:id", async(req, res) => {
 });
 
 app.delete("/tarefas/:id", async (req, res) => {
-try{
+    try {
         const { id } = req.params;
-
+        
         const query = await executarSQL(`DELETE FROM tarefas WHERE id = ${id} RETURNING *;`);
-             
+        
         if(query.rowCount > 0){
             res.json({
                 tipo: "success",
-                mensagem: "Registro apagado com sucesso"
+                mensagem: "Registro deletado com sucesso"
             });
         }else{
             res.json({
@@ -188,9 +233,10 @@ try{
 
 
 
-
 app.use((req, res) => {
-    res.status(404).send("Rota não encontrada");
+    res.status(404).json({
+        mensagem: "Rota não encontrada"
+    });
 });
 
 app.listen(3000, () => {
