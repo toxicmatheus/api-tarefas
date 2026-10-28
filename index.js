@@ -115,9 +115,9 @@ app.get("/tarefas", async (req, res) => {
 
 app.post("/tarefas", async (req, res) => {
     try {
-        const { titulo, descricao } = req.body;
+        const { titulo, descricao, usuario_id } = req.body;
 
-        const query = await executarSQL(`INSERT INTO tarefas (titulo, descricao) VALUES ($1, $2) RETURNING *;`,[titulo, descricao]);
+        const query = await executarSQL(`INSERT INTO tarefas (titulo, descricao, usuario_id) VALUES ($1, $2, $3) RETURNING *;`,[titulo, descricao, usuario_id]);
         
         if(query.rowCount > 0){
             res.json({
@@ -139,10 +139,10 @@ app.post("/tarefas", async (req, res) => {
 
 app.put("/tarefas/:id", async(req, res) => {
     try{
-        const { titulo, descricao } = req.body;
+        const { titulo, descricao, usuario_id } = req.body;
         const { id } = req.params;
 
-        const query = await executarSQL(`UPDATE tarefas SET titulo=$1, descricao=$2, WHERE id = ${id} RETURNING *;`, [titulo, descricao]);
+        const query = await executarSQL(`UPDATE tarefas SET titulo=$1, descricao=$2, usuario_id=$3 WHERE id = ${id} RETURNING *;`, [titulo, descricao, usuario_id]);
              
         if(query.rowCount > 0){
             res.json({
